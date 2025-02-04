@@ -317,6 +317,18 @@ local function teleportToCampsiteOrigin()
                 wait(0.2) -- Wait for a short duration between jumps
                 humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
                 wait(0.5) -- Wait a little before moving to campsite
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                wait(0.2) -- Wait for a short duration between jumps
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
+                wait(0.5) -- Wait a little before moving to campsite
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                wait(0.2) -- Wait for a short duration between jumps
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
+                wait(0.5) -- Wait a little before moving to campsite
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                wait(0.2) -- Wait for a short duration between jumps
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
+                wait(0.5) -- Wait a little before moving to campsite
             else
                 warn("Humanoid not found in character.")
                 return
@@ -542,7 +554,11 @@ local function teleportToSchool()
             humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
             wait(0.2) -- Wait for a short duration between jumps
             humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            wait(0.2) -- Wait for a short duration between jumps
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
+            wait(0.2) -- Wait for a short duration between jumps
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
         else
             warn("Humanoid not found in character.")
             return
