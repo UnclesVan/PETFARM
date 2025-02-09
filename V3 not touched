@@ -20,7 +20,7 @@ local function unsubscribeFromHouse()
     if not scriptActive then return end -- Exit if the script is not active
     
     local success, response = pcall(function()
-        return replicatedStorage.API.UnsubscribeFromHouse:InvokeServer(unpack(args))
+        return replicatedStorage.API["HousingAPI/UnsubscribeFromHouse"]:InvokeServer(unpack(args))
     end)
 
     if success then
@@ -47,9 +47,9 @@ end
 -- Function to find configuration for destination ID
 local function findConfigurationForDestinationId()
     if not scriptActive then return end -- Exit if the script is not active
-    
+
     local interiors = workspace:WaitForChild("Interiors")
-    
+
     for _, model in pairs(interiors:GetChildren()) do
         if model:IsA("Model") and model:FindFirstChild("Doors") then
             local doors = model.Doors
@@ -69,9 +69,9 @@ end
 -- Function to change destination ID
 local function changeDestinationId(destination)
     if not scriptActive then return end -- Exit if the script is not active
-    
+
     local configuration = findConfigurationForDestinationId()
-    
+
     if configuration and configuration:FindFirstChild("destination_id") then
         configuration.destination_id.Value = destination -- Change the destination_id
         print("Changed destination_id to: " .. configuration.destination_id.Value)
@@ -91,7 +91,7 @@ end
 -- Function to teleport to TouchToEnter part
 local function teleportToTouchToEnter()
     if not scriptActive then return end -- Exit if the script is not active
-    
+
     local success, response = pcall(function()
         local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 
@@ -122,7 +122,7 @@ end
 -- Function to find PizzaShop
 local function findPizzaShop()
     if not scriptActive then return end -- Exit if the script is not active
-    
+
     local interiors = workspace:FindFirstChild("Interiors")
     if interiors then
         return interiors:FindFirstChild("PizzaShop")
@@ -134,9 +134,9 @@ end
 -- Function to set PizzaShop properties and teleport the player
 local function setPizzaShop()
     if not scriptActive then return end -- Exit if the script is not active
-    
+
     local pizzaShop = findPizzaShop()
-    
+
     if pizzaShop then
         -- Teleport to the InteriorOrigin part when it is set
         local interiorOrigin = pizzaShop:FindFirstChild("InteriorOrigin")
@@ -144,7 +144,7 @@ local function setPizzaShop()
             interiorOrigin.Transparency = 0 -- Set transparency of InteriorOrigin to 0
             interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to match baseplate dimensions
             interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part to prevent it from falling
-            
+
             local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
             if character and character.PrimaryPart then
                 character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0)) -- Teleport above the InteriorOrigin
@@ -152,7 +152,7 @@ local function setPizzaShop()
             else
                 warn("No PrimaryPart found in character.")
             end
-            
+
             print("PizzaShop properties have been set.")
             return true
         end
@@ -176,12 +176,12 @@ local function checkInteriorOrigin()
             else
                 warn("No PrimaryPart found in character.")
             end
-            
+
             -- Set the properties of the InteriorOrigin part
             interiorOrigin.Transparency = 0 -- Set transparency to 0
             interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to match baseplate dimensions
             interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part
-            
+
             print("InteriorOrigin properties have been set.")
         end
     end
@@ -264,6 +264,28 @@ local function createPlatformAboveCampsite(campsiteOrigin)
     return platform
 end
 
+-- Updated function to create a platform above the Beach Party target
+local function createPlatformAboveBeachParty(target)
+    local platform = Instance.new("Part") -- Create a new part
+    platform.Size = Vector3.new(512, 1, 512) -- Set platform size to mimic a baseplate
+    platform.Position = target.Position + Vector3.new(0, 5, 0) -- Position it above the Beach Party target
+    platform.Anchored = true -- Make it anchored
+    platform.BrickColor = BrickColor.new("Bright green") -- Set color of the platform to green
+    platform.Parent = workspace -- Parent the platform to the workspace
+    return platform
+end
+
+-- Function to create a platform above the Playground target
+local function createPlatformAbovePlayground(target)
+    local platform = Instance.new("Part") -- Create a new part
+    platform.Size = Vector3.new(512, 1, 512) -- Set platform size to mimic a baseplate
+    platform.Position = target.Position + Vector3.new(0, 5, 0) -- Position it above the Playground target
+    platform.Anchored = true -- Make it anchored
+    platform.BrickColor = BrickColor.new("Bright green") -- Set color of the platform to green
+    platform.Parent = workspace -- Parent the platform to the workspace
+    return platform
+end
+
 -- Function to create a countdown UI element
 local function createCountdownLabel(taskName, initialTime)
     local screenGui = Instance.new("ScreenGui")
@@ -310,25 +332,13 @@ local function teleportToCampsiteOrigin()
             character:SetPrimaryPartCFrame(touchToEnterPart.CFrame)
             print("Walking to School's TouchToEnter.")
 
-            -- Make the character jump twice
+            -- Make the character jump several times
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                wait(0.2) -- Wait for a short duration between jumps
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-                wait(0.5) -- Wait a little before moving to campsite
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                wait(0.2) -- Wait for a short duration between jumps
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-                wait(0.5) -- Wait a little before moving to campsite
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                wait(0.2) -- Wait for a short duration between jumps
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-                wait(0.5) -- Wait a little before moving to campsite
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                wait(0.2) -- Wait for a short duration between jumps
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-                wait(0.5) -- Wait a little before moving to campsite
+                for _ = 1, 5 do
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    wait(0.2) -- Wait for a short duration between jumps
+                end
             else
                 warn("Humanoid not found in character.")
                 return
@@ -362,6 +372,70 @@ local function teleportToCampsiteOrigin()
     end
 end
 
+-- Function to teleport to Beach Party
+local function teleportToBeachParty()
+    print("Teleport to Beach Party button clicked.")
+
+    local beachPartyTarget = workspace.StaticMap.Beach:FindFirstChild("BeachPartyAilmentTarget")
+    
+    if beachPartyTarget then
+        local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+        
+        if character and character.PrimaryPart then
+            -- Create a platform above the Beach Party target
+            local platform = createPlatformAboveBeachParty(beachPartyTarget)
+            
+            -- Teleport character to the top of the platform
+            character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
+            print("Teleported to Beach Party Ailment Target above the platform.")
+
+            -- Start the countdown for Beach Party task
+            coroutine.wrap(startCountdown)("Doing Beach Party Task", 100) -- Starts a 100-second countdown
+        else
+            warn("Character or PrimaryPart not found.")
+        end
+    else
+        warn("Beach Party Ailment Target not found!")
+    end
+end
+
+-- Function to teleport to Playground
+local function teleportToPlayground()
+    print("Teleport to Playground button clicked.")
+
+    local playgroundTarget = workspace.StaticMap.Park:FindFirstChild("BoredAilmentTarget")
+
+    if playgroundTarget then
+        local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+
+        if character and character.PrimaryPart then
+            -- Create a platform above the Playground target
+            local platform = createPlatformAbovePlayground(playgroundTarget)
+            
+            -- Teleport character to the top of the platform
+            character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
+            print("Teleported to Playground Ailment Target above the platform.")
+
+            -- Start countdown for Playground task
+            coroutine.wrap(startCountdown)("Doing Playground Task", 100) -- Starts a 100-second countdown
+        else
+            warn("Character or PrimaryPart not found.")
+        end
+    else
+        warn("Playground Ailment Target not found!")
+    end
+end
+
+-- Function to handle "Do Moon Task" button
+local function doMoonTask()
+    local args = {
+        [1] = "MoonInterior"
+    }
+    
+    game:GetService("ReplicatedStorage").API["LocationAPI/SetLocation"]:FireServer(unpack(args))
+    print("Moon Task executed: Set location to MoonInterior.")
+end
+
 -- GUI Creation
 local screenGui = Instance.new("ScreenGui")
 local toggleButton = Instance.new("TextButton")
@@ -369,6 +443,9 @@ local closeButton = Instance.new("TextButton")
 local teleportToSalonButton = Instance.new("TextButton")
 local teleportToSchoolButton = Instance.new("TextButton") -- Button for School
 local teleportToCampsiteButton = Instance.new("TextButton") -- Button for Campsite Origin
+local teleportToBeachPartyButton = Instance.new("TextButton") -- Button for Beach Party
+local teleportToPlaygroundButton = Instance.new("TextButton") -- Button for Playground
+local doMoonTaskButton = Instance.new("TextButton") -- Button for Do Moon Task
 
 -- Set up properties for the ScreenGui
 screenGui.Name = "ToggleGui"
@@ -420,27 +497,54 @@ teleportToCampsiteButton.TextScaled = true
 teleportToCampsiteButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
 teleportToCampsiteButton.Parent = screenGui
 
+-- Set up properties for the Teleport to Beach Party Button
+teleportToBeachPartyButton.Name = "TeleportToBeachPartyButton"
+teleportToBeachPartyButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
+teleportToBeachPartyButton.Position = UDim2.new(0, 10, 0, 310) -- Below the Campsite button
+teleportToBeachPartyButton.Text = "Teleport to Beach Party"
+teleportToBeachPartyButton.TextScaled = true
+teleportToBeachPartyButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToBeachPartyButton.Parent = screenGui
+
+-- Set up properties for the Teleport to Playground Button
+teleportToPlaygroundButton.Name = "TeleportToPlaygroundButton"
+teleportToPlaygroundButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
+teleportToPlaygroundButton.Position = UDim2.new(0, 10, 0, 370) -- Below the Beach Party button
+teleportToPlaygroundButton.Text = "Teleport to Playground"
+teleportToPlaygroundButton.TextScaled = true
+teleportToPlaygroundButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToPlaygroundButton.Parent = screenGui
+
+-- Set up properties for the Do Moon Task Button
+doMoonTaskButton.Name = "DoMoonTaskButton"
+doMoonTaskButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
+doMoonTaskButton.Position = UDim2.new(0, 10, 0, 430) -- Below the Playground button
+doMoonTaskButton.Text = "Do Moon Task"
+doMoonTaskButton.TextScaled = true
+doMoonTaskButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+doMoonTaskButton.Parent = screenGui
+
 -- Function to toggle script active status and execute script logic
 local function toggleScript()
     scriptActive = not scriptActive
     if scriptActive then
         toggleButton.Text = "Teleport to PizzaShop: On"
         print("Script is now active.")
-        
+
         -- Call the necessary functions when the script is activated
         unsubscribeFromHouse() -- Unsubscribe from the house
         wait(5) -- Wait for 5 seconds after unsubscribing
-        
+
         -- Start the coroutine for continuous destination id update
         coroutine.wrap(changeDestinationIdForPizzaShop)()
 
         -- Attempt to teleport to the neighborhood
         wait(3) -- Ensure there is sufficient time for the unsubscribe to complete
         teleportToTouchToEnter() -- Attempt to teleport to the TouchToEnter part.
-        
+
         -- Start checking for InteriorOrigin continuously
         coroutine.wrap(checkInteriorOriginContinuously)() 
-        
+
         -- Start the countdown for Pizza Shop Task
         coroutine.wrap(startCountdown)("Doing Pizza Shop Task", 100) -- Starts a 100-second countdown
     else
@@ -619,3 +723,6 @@ closeButton.MouseButton1Click:Connect(closeGui)
 teleportToSalonButton.MouseButton1Click:Connect(teleportToSalon)
 teleportToSchoolButton.MouseButton1Click:Connect(teleportToSchool)
 teleportToCampsiteButton.MouseButton1Click:Connect(teleportToCampsiteOrigin)
+teleportToBeachPartyButton.MouseButton1Click:Connect(teleportToBeachParty) -- Connect Beach Party button
+teleportToPlaygroundButton.MouseButton1Click:Connect(teleportToPlayground) -- Connect Playground button
+doMoonTaskButton.MouseButton1Click:Connect(doMoonTask) -- Connect Moon Task button
