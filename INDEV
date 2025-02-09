@@ -1,0 +1,107 @@
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/UnclesVan/AdoPtMe-/refs/heads/main/dehashwithslashinmiddle')))()
+
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local API = ReplicatedStorage:WaitForChild("API")
+local player = Players.LocalPlayer
+
+-- Function to create a platform at a specified position with a specific name
+local function spawnPlatform(position, name)
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(50, 1, 50) -- Size of the platform (larger than before)
+    platform.Anchored = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Bright green")
+    platform.Position = position
+    platform.Name = name -- Set the platform's name
+    platform.Parent = game.Workspace
+    return platform
+end
+
+-- Function to teleport the player to a specified location
+local function teleportToLocation(location)
+    API["LocationAPI/SetLocation"]:FireServer(location)
+end
+
+-- Function to display a countdown on the GUI
+local function countdown(seconds)
+    local hintLabel = player.PlayerGui:WaitForChild("HintApp"):WaitForChild("LargeTextLabel")
+
+    for i = seconds, 0, -1 do
+        hintLabel.Text = tostring(i) -- Display the current countdown number
+        wait(1) -- Wait for one second
+    end
+
+    hintLabel.Text = "" -- Clear the hint label after the countdown
+end
+
+-- Function to place the character on top of the platform
+local function placeCharacterOnPlatform(platform)
+    local character = player.Character or player.CharacterAdded:Wait()
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = character.HumanoidRootPart
+        local platformHeight = platform.Size.Y / 2
+        local characterHeight = rootPart.Size.Y / 2
+        
+        -- Place the character above the platform, accounting for both the platform and character heights
+        rootPart.CFrame = platform.CFrame * CFrame.new(0, platformHeight + characterHeight, 0)
+    end
+end
+
+-- Function to generate random positions for platforms
+local function generateRandomPosition()
+    local x = math.random(-100, 100) -- Random x position
+    local z = math.random(-100, 100) -- Random z position
+    return Vector3.new(x, 5, z) -- You can change the height (y) value as needed
+end
+
+-- Main function to handle teleportation and platform creation
+local function main()
+    local locations = {
+        {name = "PizzaShop"},
+        {name = "Salon"},
+        {name = "School"},
+        {name = "MoonInterior"}
+    }
+
+    local usedPositions = {} -- To store positions already used
+
+    for _, loc in pairs(locations) do
+        print(loc.name) -- Print current location name
+        
+        -- Generate a unique random position for the platform
+        local position
+        repeat
+            position = generateRandomPosition()
+        until not usedPositions[position]
+
+        usedPositions[position] = true -- Mark this position as used
+
+        countdown(10) -- Display countdown before teleportation
+
+        local spawnSuccess = API:FindFirstChild("TeamAPI/Spawn"):InvokeServer() -- Trigger the spawn
+        if spawnSuccess then
+            print("Spawn completed for: " .. loc.name)
+        else
+            warn("Spawn failed for: " .. loc.name)
+        end
+        
+        wait(10) -- Wait for 10 seconds after spawning
+
+        teleportToLocation(loc.name) -- Move player to new location
+        wait(1) -- Adjust wait time as necessary
+
+        local platformName = loc.name .. " Platform" -- Constructing the platform name
+        local platform = spawnPlatform(position, platformName) -- Spawn platform
+
+        -- Place the character on top of the platform
+        placeCharacterOnPlatform(platform)
+
+        wait(3) -- Wait a bit before continuing to the next location
+    end
+end
+
+-- Start the main function
+main()
