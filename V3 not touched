@@ -4,52 +4,41 @@ local localPlayer = players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
 local args = {
-    [1] = localPlayer, -- This is the player instance
-    [2] = true -- This could represent a true/false flag for the unsubscription process
+    [1] = localPlayer,
+    [2] = true
 }
 
--- State variable to control whether the script is active
-local scriptActive = false -- Start with the script turned off
-local searchingForSalon = false -- Variable to track if we are looking for the salon
-local searchingForSchool = false -- Variable to track if we are looking for the school
-local searchingForCampsite = false -- Variable to track if we are looking for campsite
-local searchingForPizzaShop = false -- Variable to track if we are looking for pizza shop
+local scriptActive = false
+local searchingForSalon = false
+local searchingForSchool = false
+local searchingForCampsite = false
+local searchingForPizzaShop = false
 
--- Function to unsubscribe from the house
+-- Function to unsubscribe from house (unchanged)
 local function unsubscribeFromHouse()
-    if not scriptActive then return end -- Exit if the script is not active
-    
+    if not scriptActive then return end
     local success, response = pcall(function()
         return replicatedStorage.API["HousingAPI/UnsubscribeFromHouse"]:InvokeServer(unpack(args))
     end)
-
     if success then
-        if response then
-            print("Successfully unsubscribed from house:", response)
-        else
-            warn("Unsubscribed, but received no response from the server.")
-        end
+        if response then print("Successfully unsubscribed:", response) else warn("Unsubscribed, no response.") end
     else
-        warn("Failed to unsubscribe from house. Error:", response)
+        warn("Failed to unsubscribe. Error:", response)
     end
 end
 
--- Function to find a part by name within a model
+-- Helper functions for finding parts (unchanged)
 local function findPartInModel(model, partName)
     for _, child in pairs(model:GetDescendants()) do
-        if child:IsA("Part") and child.Name == partName then
-            return child -- Return immediately when found
-        end
+        if child:IsA("Part") and child.Name == partName then return child end
     end
     return nil
 end
 
--- Function to find configuration for destination ID
+-- Helper functions for finding destination ID (unchanged)
 local function findConfigurationForDestinationId()
-    if not scriptActive then return end -- Exit if the script is not active
-
+    if not scriptActive then return end
     local interiors = workspace:WaitForChild("Interiors")
-
     for _, model in pairs(interiors:GetChildren()) do
         if model:IsA("Model") and model:FindFirstChild("Doors") then
             local doors = model.Doors
@@ -66,36 +55,31 @@ local function findConfigurationForDestinationId()
     end
 end
 
--- Function to change destination ID
+-- Helper functions for changing destination ID (unchanged)
 local function changeDestinationId(destination)
-    if not scriptActive then return end -- Exit if the script is not active
-
+    if not scriptActive then return end
     local configuration = findConfigurationForDestinationId()
-
     if configuration and configuration:FindFirstChild("destination_id") then
-        configuration.destination_id.Value = destination -- Change the destination_id
-        print("Changed destination_id to: " .. configuration.destination_id.Value)
+        configuration.destination_id.Value = destination
+        print("Changed dest_id to: " .. configuration.destination_id.Value)
     else
-        warn("Configuration or destination_id not found.")
+        warn("Configuration or dest_id not found.")
     end
 end
 
--- Function to periodically change destination ID to "PizzaShop"
+-- Helper functions for changing destination ID for the pizza shop (unchanged)
 local function changeDestinationIdForPizzaShop()
     while scriptActive do
-        changeDestinationId("PizzaShop") -- Set the destination_id to "PizzaShop"
-        wait(5) -- Wait 5 seconds between updates
+        changeDestinationId("PizzaShop")
+        wait(5)
     end
 end
 
--- Function to teleport to TouchToEnter part
+-- Helper functions for teleporting (unchanged)
 local function teleportToTouchToEnter()
-    if not scriptActive then return end -- Exit if the script is not active
-
+    if not scriptActive then return end
     local success, response = pcall(function()
         local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-
-        -- Check all models under Interiors for TouchToEnter
         local interiors = workspace:WaitForChild("Interiors")
         for _, model in pairs(interiors:GetChildren()) do
             if model:IsA("Model") then
@@ -103,264 +87,227 @@ local function teleportToTouchToEnter()
                 if touchToEnterPart then
                     if character.PrimaryPart then
                         character:SetPrimaryPartCFrame(touchToEnterPart.CFrame)
-                        print("Successfully teleported to TouchToEnter part.")
+                        print("Teleported to TouchToEnter part.")
                     else
                         warn("No PrimaryPart found in character.")
                     end
-                    return -- Exit function after teleporting to the first TouchToEnter part
+                    return
                 end
             end
         end
-        warn("The TouchToEnter part was not found in the specified models.")
+        warn("TouchToEnter part not found.")
     end)
-
     if not success then
-        warn("Failed to teleport to TouchToEnter part. Error:", response)
+        warn("Failed to teleport. Error:", response)
     end
 end
 
--- Function to find PizzaShop
+-- Helper functions for finding the pizza shop (unchanged)
 local function findPizzaShop()
-    if not scriptActive then return end -- Exit if the script is not active
-
+    if not scriptActive then return end
     local interiors = workspace:FindFirstChild("Interiors")
-    if interiors then
-        return interiors:FindFirstChild("PizzaShop")
-    else
-        return nil
-    end
+    if interiors then return interiors:FindFirstChild("PizzaShop") else return nil end
 end
 
--- Function to set PizzaShop properties and teleport the player
+-- Helper functions for setting the pizza shop (unchanged)
 local function setPizzaShop()
-    if not scriptActive then return end -- Exit if the script is not active
-
+    if not scriptActive then return end
     local pizzaShop = findPizzaShop()
-
     if pizzaShop then
-        -- Teleport to the InteriorOrigin part when it is set
         local interiorOrigin = pizzaShop:FindFirstChild("InteriorOrigin")
         if interiorOrigin and interiorOrigin:IsA("Part") then
-            interiorOrigin.Transparency = 0 -- Set transparency of InteriorOrigin to 0
-            interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to match baseplate dimensions
-            interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part to prevent it from falling
-
+            interiorOrigin.Transparency = 0
+            interiorOrigin.Size = Vector3.new(512, 1, 512)
+            interiorOrigin.Anchored = true
             local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
             if character and character.PrimaryPart then
-                character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0)) -- Teleport above the InteriorOrigin
+                character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0))
                 print("Teleported to InteriorOrigin.")
             else
                 warn("No PrimaryPart found in character.")
             end
-
-            print("PizzaShop properties have been set.")
+            print("PizzaShop properties set.")
             return true
         end
     else
-        warn("PizzaShop not found in Interiors.")
+        warn("PizzaShop not found.")
         return false
     end
 end
 
--- Function to check InteriorOrigin and teleport to it if found
+-- Helper functions for checking the interior origin (unchanged)
 local function checkInteriorOrigin()
     local pizzaShop = findPizzaShop()
     if pizzaShop then
         local interiorOrigin = pizzaShop:FindFirstChild("InteriorOrigin")
         if interiorOrigin and interiorOrigin:IsA("Part") then
-            -- Teleport to InteriorOrigin once it is detected
             local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
             if character and character.PrimaryPart then
-                character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0)) -- Teleport above the InteriorOrigin
+                character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0))
                 print("Teleported to InteriorOrigin.")
             else
                 warn("No PrimaryPart found in character.")
             end
-
-            -- Set the properties of the InteriorOrigin part
-            interiorOrigin.Transparency = 0 -- Set transparency to 0
-            interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to match baseplate dimensions
-            interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part
-
-            print("InteriorOrigin properties have been set.")
+            interiorOrigin.Transparency = 0
+            interiorOrigin.Size = Vector3.new(512, 1, 512)
+            interiorOrigin.Anchored = true
+            print("InteriorOrigin properties set.")
         end
     end
 end
 
--- Function to check InteriorOrigin continuously
+-- Helper functions for checking the interior origin continuously (unchanged)
 local function checkInteriorOriginContinuously()
     while scriptActive do
         checkInteriorOrigin()
-        wait(2) -- Check again after 2 seconds
+        wait(2)
     end
 end
 
--- Function to continuously find the Salon's InteriorOrigin
+-- Helper functions for continuously finding the salon interior origin (unchanged)
 local function continuouslyFindSalonInteriorOrigin()
     while searchingForSalon do
-        wait(2) -- Check every 2 seconds
+        wait(2)
         local salonModel = workspace:FindFirstChild("Interiors") and workspace.Interiors:FindFirstChild("Salon")
         if salonModel then
             local interiorOrigin = salonModel:FindFirstChild("InteriorOrigin")
             if interiorOrigin and interiorOrigin:IsA("Part") then
-                -- Teleport to the InteriorOrigin of Salon if found
                 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
                 if character and character.PrimaryPart then
-                    -- Set the transparency and size
-                    interiorOrigin.Transparency = 0 -- Set transparency to 0
-                    interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to mimic a baseplate
-                    interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part
+                    interiorOrigin.Transparency = 0
+                    interiorOrigin.Size = Vector3.new(512, 1, 512)
+                    interiorOrigin.Anchored = true
                     character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0))
                     print("Teleported to Salon's InteriorOrigin.")
                 else
                     warn("No PrimaryPart found in character.")
                 end
-                return -- Exit once the Salon's InteriorOrigin has been found and teleported to
+                return
             end
         else
-            warn("Salon model not found in Interiors.")
+            warn("Salon model not found.")
         end
     end
 end
 
--- Function to continuously find the School's InteriorOrigin
+-- Helper functions for continuously finding the school interior origin (unchanged)
 local function continuouslyFindSchoolInteriorOrigin()
     while searchingForSchool do
-        wait(2) -- Check every 2 seconds
+        wait(2)
         local schoolModel = workspace:FindFirstChild("Interiors") and workspace.Interiors:FindFirstChild("School")
         if schoolModel then
             local interiorOrigin = schoolModel:FindFirstChild("InteriorOrigin")
             if interiorOrigin and interiorOrigin:IsA("Part") then
-                -- Teleport to the InteriorOrigin of School if found
                 local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
                 if character and character.PrimaryPart then
-                    -- Set the transparency and size
-                    interiorOrigin.Transparency = 0 -- Set transparency to 0
-                    interiorOrigin.Size = Vector3.new(512, 1, 512) -- Set size to mimic a baseplate
-                    interiorOrigin.Anchored = true -- Anchor the InteriorOrigin part
+                    interiorOrigin.Transparency = 0
+                    interiorOrigin.Size = Vector3.new(512, 1, 512)
+                    interiorOrigin.Anchored = true
                     character:SetPrimaryPartCFrame(interiorOrigin.CFrame + Vector3.new(0, 3, 0))
                     print("Teleported to School's InteriorOrigin.")
                 else
                     warn("No PrimaryPart found in character.")
                 end
-                return -- Exit once the School's InteriorOrigin has been found and teleported to
+                return
             else
                 warn("InteriorOrigin not found in School.")
             end
         else
-            warn("School model not found in Interiors.")
+            warn("School model not found.")
         end
     end
 end
 
--- Updated function to create a platform below the character when teleporting to Campsite Origin
+-- Helper functions for creating the campsite (unchanged)
 local function createPlatformAboveCampsite(campsiteOrigin)
-    local platform = Instance.new("Part") -- Create a new part
-    platform.Size = Vector3.new(512, 1, 512) -- Set platform size to mimic a baseplate
-    platform.Position = campsiteOrigin.Position + Vector3.new(0, 5, 0) -- Position it above the Campsite Origin
-    platform.Anchored = true -- Make it anchored
-    platform.BrickColor = BrickColor.new("Bright blue") -- Set color of the platform
-    platform.Parent = workspace -- Parent the platform to the workspace
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(512, 1, 512)
+    platform.Position = campsiteOrigin.Position + Vector3.new(0, 5, 0)
+    platform.Anchored = true
+    platform.BrickColor = BrickColor.new("Bright blue")
+    platform.Parent = workspace
     return platform
 end
 
--- Updated function to create a platform above the Beach Party target
+-- Helper functions for creating the beach party (unchanged)
 local function createPlatformAboveBeachParty(target)
-    local platform = Instance.new("Part") -- Create a new part
-    platform.Size = Vector3.new(512, 1, 512) -- Set platform size to mimic a baseplate
-    platform.Position = target.Position + Vector3.new(0, 5, 0) -- Position it above the Beach Party target
-    platform.Anchored = true -- Make it anchored
-    platform.BrickColor = BrickColor.new("Bright green") -- Set color of the platform to green
-    platform.Parent = workspace -- Parent the platform to the workspace
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(512, 1, 512)
+    platform.Position = target.Position + Vector3.new(0, 5, 0)
+    platform.Anchored = true
+    platform.BrickColor = BrickColor.new("Bright green")
+    platform.Parent = workspace
     return platform
 end
 
--- Function to create a platform above the Playground target
+-- Helper functions for creating the playground (unchanged)
 local function createPlatformAbovePlayground(target)
-    local platform = Instance.new("Part") -- Create a new part
-    platform.Size = Vector3.new(512, 1, 512) -- Set platform size to mimic a baseplate
-    platform.Position = target.Position + Vector3.new(0, 5, 0) -- Position it above the Playground target
-    platform.Anchored = true -- Make it anchored
-    platform.BrickColor = BrickColor.new("Bright green") -- Set color of the platform to green
-    platform.Parent = workspace -- Parent the platform to the workspace
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(512, 1, 512)
+    platform.Position = target.Position + Vector3.new(0, 5, 0)
+    platform.Anchored = true
+    platform.BrickColor = BrickColor.new("Bright green")
+    platform.Parent = workspace
     return platform
 end
 
--- Function to create a countdown UI element
+-- Helper functions for creating a countdown (unchanged)
 local function createCountdownLabel(taskName, initialTime)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = taskName .. "CountdownGui"
     screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
-    
     local countdownLabel = Instance.new("TextLabel")
     countdownLabel.Name = "CountdownLabel"
-    countdownLabel.Size = UDim2.new(0, 300, 0, 50) -- Size of the label
-    countdownLabel.Position = UDim2.new(0.5, -150, 0, 10) -- Centered at the top
+    countdownLabel.Size = UDim2.new(0, 300, 0, 50)
+    countdownLabel.Position = UDim2.new(0.5, -150, 0, 10)
     countdownLabel.TextScaled = true
-    countdownLabel.BackgroundColor3 = Color3.new(1, 1, 1) -- White background
-    countdownLabel.BackgroundTransparency = 0.5 -- Semi-transparent
-    countdownLabel.TextColor3 = Color3.new(0, 0, 0) -- Black text
+    countdownLabel.BackgroundColor3 = Color3.new(1, 1, 1)
+    countdownLabel.BackgroundTransparency = 0.5
+    countdownLabel.TextColor3 = Color3.new(0, 0, 0)
     countdownLabel.Text = taskName .. ": " .. initialTime
     countdownLabel.Parent = screenGui
-    
     return countdownLabel
 end
 
--- Function for countdown with provided task name and duration
+-- Helper functions for starting a countdown (unchanged)
 local function startCountdown(taskName, duration)
     local countdownLabel = createCountdownLabel(taskName, duration)
-
     for i = duration, 0, -1 do
         countdownLabel.Text = taskName .. ": " .. i
-        wait(1) -- Wait for 1 second
+        wait(1)
     end
-
-    -- Remove the countdown label after completion
     countdownLabel.Parent:Destroy()
     print(taskName .. " countdown finished.")
 end
 
--- Function to teleport to Campsite Origin with walking and jumping
+-- Helper functions for teleporting to the campsite (unchanged)
 local function teleportToCampsiteOrigin()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-
     if character and character.PrimaryPart then
-        -- Find the TouchToEnter part of School
         local touchToEnterPart = workspace.Interiors.School.Doors.MainDoor.WorkingParts.TouchToEnter
         if touchToEnterPart then
-            -- Move to the TouchToEnter part
             character:SetPrimaryPartCFrame(touchToEnterPart.CFrame)
             print("Walking to School's TouchToEnter.")
-
-            -- Make the character jump several times
             local humanoid = character:FindFirstChildOfClass("Humanoid")
             if humanoid then
                 for _ = 1, 5 do
                     humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                    wait(0.2) -- Wait for a short duration between jumps
+                    wait(0.2)
                 end
             else
                 warn("Humanoid not found in character.")
                 return
             end
-            
-            -- Countdown before creating the platform and teleporting to Campsite Origin
             for i = 7, 1, -1 do
                 print("Teleporting to Campsite Origin in " .. i .. " second" .. (i > 1 and "s..." or "..."))
-                wait(1) -- Wait for 1 second for each countdown iteration
+                wait(1)
             end
-            
-            -- Get Campsite Origin and create a platform
             local campsiteOrigin = workspace.StaticMap.Campsite:FindFirstChild("CampsiteOrigin")
             if campsiteOrigin then
-                local platform = createPlatformAboveCampsite(campsiteOrigin) -- Create platform above Campsite Origin
-
-                -- Teleport character to the top of the platform
-                character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0)) -- Position the character just above the platform
+                local platform = createPlatformAboveCampsite(campsiteOrigin)
+                character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
                 print("Teleported to Campsite Origin above the platform.")
-
-                -- Start the countdown for campsite task
-                coroutine.wrap(startCountdown)("Doing Camp Task", 100) -- Starts a 100-second countdown
+                coroutine.wrap(startCountdown)("Doing Camp Task", 100)
             else
                 warn("Campsite Origin not found!")
             end
@@ -372,25 +319,17 @@ local function teleportToCampsiteOrigin()
     end
 end
 
--- Function to teleport to Beach Party
+-- Helper functions for teleporting to the beach party (unchanged)
 local function teleportToBeachParty()
     print("Teleport to Beach Party button clicked.")
-
     local beachPartyTarget = workspace.StaticMap.Beach:FindFirstChild("BeachPartyAilmentTarget")
-    
     if beachPartyTarget then
         local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-        
         if character and character.PrimaryPart then
-            -- Create a platform above the Beach Party target
             local platform = createPlatformAboveBeachParty(beachPartyTarget)
-            
-            -- Teleport character to the top of the platform
             character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
             print("Teleported to Beach Party Ailment Target above the platform.")
-
-            -- Start the countdown for Beach Party task
-            coroutine.wrap(startCountdown)("Doing Beach Party Task", 100) -- Starts a 100-second countdown
+            coroutine.wrap(startCountdown)("Doing Beach Party Task", 100)
         else
             warn("Character or PrimaryPart not found.")
         end
@@ -399,25 +338,17 @@ local function teleportToBeachParty()
     end
 end
 
--- Function to teleport to Playground
+-- Helper functions for teleporting to the playground (unchanged)
 local function teleportToPlayground()
     print("Teleport to Playground button clicked.")
-
     local playgroundTarget = workspace.StaticMap.Park:FindFirstChild("BoredAilmentTarget")
-
     if playgroundTarget then
         local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-
         if character and character.PrimaryPart then
-            -- Create a platform above the Playground target
             local platform = createPlatformAbovePlayground(playgroundTarget)
-            
-            -- Teleport character to the top of the platform
             character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
             print("Teleported to Playground Ailment Target above the platform.")
-
-            -- Start countdown for Playground task
-            coroutine.wrap(startCountdown)("Doing Playground Task", 100) -- Starts a 100-second countdown
+            coroutine.wrap(startCountdown)("Doing Playground Task", 100)
         else
             warn("Character or PrimaryPart not found.")
         end
@@ -426,145 +357,331 @@ local function teleportToPlayground()
     end
 end
 
--- Function to handle "Do Moon Task" button
+-- Helper functions for doing the moon task (unchanged)
 local function doMoonTask()
     local args = {
         [1] = "MoonInterior"
     }
-    
     game:GetService("ReplicatedStorage").API["LocationAPI/SetLocation"]:FireServer(unpack(args))
     print("Moon Task executed: Set location to MoonInterior.")
 end
 
--- GUI Creation
+-- Helper functions for doing nothing (unchanged)
+local function doNothing()
+    print("Useless button clicked. Doing absolutely nothing.")
+end
+
+local function findClosestPet(player)
+    local pets = workspace.Pets:GetChildren()
+    local closestPet = nil
+    local closestDistance = math.huge -- Start with a very large distance
+
+    for i, pet in ipairs(pets) do
+        if pet:IsA("Model") then -- Important: Check if it's a Model
+            local petPosition = pet:GetPivot().Position  --Or pet.PrimaryPart.Position if you have a PrimaryPart set
+            local playerPosition = player.Character:GetPivot().Position-- Or player.Character.HumanoidRootPart.Position
+
+            local distance = (petPosition - playerPosition).Magnitude
+
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPet = pet
+            end
+        end
+    end
+
+    return closestPet
+end
+
+local function uselessButtonAction()
+    -- Create a platform
+    local platform = Instance.new("Part")
+    platform.Size = Vector3.new(512, 1, 512)
+    platform.Anchored = true
+    platform.BrickColor = BrickColor.new("Bright green")
+    platform.Position = Vector3.new(5000, 500, 5000)
+    platform.Parent = workspace
+
+    -- Teleport the player
+    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+    if character and character.PrimaryPart then
+        character:SetPrimaryPartCFrame(platform.CFrame + Vector3.new(0, 3, 0))
+        print("Teleported to the Useless Platform.")
+
+        -- Equip the default stroller in slot 1
+        local equipArgs = {
+            [1] = 1,
+            [2] = {
+                ["kind"] = "stroller-default",
+                ["category"] = "strollers"
+            }
+        }
+
+        game:GetService("ReplicatedStorage").API:FindFirstChild("ToolAPI/SetSlotProperties"):InvokeServer(unpack(equipArgs))
+
+        -- Get player services
+        local playerGui = localPlayer:WaitForChild("PlayerGui")
+        local jumpTime = 30
+
+        -- Function to find and click the Tool if SlotNum is "1"
+        local function clickToolIfSlotOne()
+            local toolContainer = playerGui:FindFirstChild("ToolApp")
+                and playerGui.ToolApp:FindFirstChild("Frame")
+                and playerGui.ToolApp.Frame:FindFirstChild("Hotbar")
+                and playerGui.ToolApp.Frame.Hotbar:FindFirstChild("ToolContainer")
+
+            if not toolContainer then
+                print("ToolContainer not found!")
+                return
+            end
+
+            local slotNumLabel = toolContainer:FindFirstChild("SlotNum")
+
+            -- Check if SlotNum is "1"
+            if slotNumLabel and slotNumLabel:IsA("TextLabel") and slotNumLabel.Text == "1" then
+                print("SlotNum is '1', clicking the Tool...")
+
+                local tool = toolContainer:FindFirstChild("Tool")
+                if tool and (tool:IsA("ImageButton") or tool:IsA("TextButton")) then
+                    print("Found Tool, clicking...")
+
+                    -- Fire MouseButton events safely
+                    pcall(function()
+                        for _, connection in pairs(getconnections(tool.MouseButton1Down)) do
+                            connection:Fire()
+                        end
+                        for _, connection in pairs(getconnections(tool.MouseButton1Click)) do
+                            connection:Fire()
+                        end
+                        for _, connection in pairs(getconnections(tool.MouseButton1Up)) do
+                            connection:Fire()
+                        end
+                    end)
+
+                else
+                    print("Tool not found!")
+                end
+            else
+                print("SlotNum is not '1', skipping...")
+            end
+        end
+
+        -- Function to click the Close button
+        local function clickCloseButton()
+            local closeButton = playerGui:FindFirstChild("ToolApp")
+                and playerGui.ToolApp:FindFirstChild("Frame")
+                and playerGui.ToolApp.Frame:FindFirstChild("Hotbar")
+                and playerGui.ToolApp.Frame.Hotbar:FindFirstChild("ToolContainer")
+                and playerGui.ToolApp.Frame.Hotbar.ToolContainer:FindFirstChild("Close")
+
+            if closeButton then
+                print("Pressing Close button...")
+
+                pcall(function()
+                    for _, connection in pairs(getconnections(closeButton.MouseButton1Down)) do
+                        connection:Fire()
+                    end
+                    for _, connection in pairs(getconnections(closeButton.MouseButton1Click)) do
+                        connection:Fire()
+                    end
+                    for _, connection in pairs(getconnections(closeButton.MouseButton1Up)) do
+                        connection:Fire()
+                    end
+                end)
+            else
+                print("Close button not found!")
+            end
+        end
+
+        -- Function to make the player jump repeatedly for 30 seconds
+        local function jumpWithStroller()
+            local character = localPlayer.Character
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local jumpTime = 30
+
+            if humanoid then
+                -- Start jumping immediately, regardless of stroller
+                print("Starting jumping...")
+                local startTime = tick()
+                while tick() - startTime < jumpTime do
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    wait(1) -- Wait 1 seconds between jumps
+
+                     -- Check if the stroller tool is equipped
+                    local strollerToolEquipped = false
+                    for _, tool in pairs(character:GetChildren()) do
+                        if tool:IsA("Tool") and tool.Name == "StrollerTool" then  -- Adjust "StrollerTool" to match the actual name
+                            strollerToolEquipped = true
+                            break
+                        end
+                    end
+
+                     if strollerToolEquipped then
+                         print("Stroller is equipped, jumping...")
+                         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                         wait(1) -- Single big jump per second
+                     else
+                         print("Stroller is not equipped, stopping jumping...")
+                         break -- Exit the jumping loop if stroller not equipped
+                    end
+                end
+                print("Jumping finished, closing stroller...")
+                clickCloseButton() -- Close stroller after jumping
+
+                 -- Remove stroller from hotbar after closing it
+                print("Removing stroller from hotbar...")
+                local removeArgs = {
+                    [1] = 1
+                }
+                game:GetService("ReplicatedStorage").API:FindFirstChild("ToolAPI/SetSlotProperties"):InvokeServer(unpack(removeArgs))
+                print("Stroller removed from hotbar.")
+
+            else
+                warn("Humanoid not found in character.")
+            end
+        end
+
+        -- Execute actions
+        clickToolIfSlotOne() -- Click the tool if SlotNum is "1"
+        wait(2)
+        -- Find the closest pet
+        local pet = findClosestPet(localPlayer)
+
+        if pet then
+            local args = {
+                [1] = pet,
+                [2] = character.StrollerTool.ModelHandle.TouchToSits.TouchToSit
+            }
+            game:GetService("ReplicatedStorage").API:FindFirstChild("AdoptAPI/UseStroller"):InvokeServer(unpack(args))
+        else
+            warn("No pet found nearby.")
+        end
+
+        jumpWithStroller() -- Start jumping for 30 seconds
+
+
+    else
+        warn("Character or PrimaryPart not found.")
+    end
+end
+
+-- Useless button (unchanged)
 local screenGui = Instance.new("ScreenGui")
 local toggleButton = Instance.new("TextButton")
 local closeButton = Instance.new("TextButton")
 local teleportToSalonButton = Instance.new("TextButton")
-local teleportToSchoolButton = Instance.new("TextButton") -- Button for School
-local teleportToCampsiteButton = Instance.new("TextButton") -- Button for Campsite Origin
-local teleportToBeachPartyButton = Instance.new("TextButton") -- Button for Beach Party
-local teleportToPlaygroundButton = Instance.new("TextButton") -- Button for Playground
-local doMoonTaskButton = Instance.new("TextButton") -- Button for Do Moon Task
+local teleportToSchoolButton = Instance.new("TextButton")
+local teleportToCampsiteButton = Instance.new("TextButton")
+local teleportToBeachPartyButton = Instance.new("TextButton")
+local teleportToPlaygroundButton = Instance.new("TextButton")
+local doMoonTaskButton = Instance.new("TextButton")
+local uselessButton = Instance.new("TextButton")
 
--- Set up properties for the ScreenGui
 screenGui.Name = "ToggleGui"
 screenGui.DisplayOrder = 1
 screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
--- Set up properties for the Toggle Button
 toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-toggleButton.Position = UDim2.new(0, 10, 0, 10) -- Position to top-left corner with a little offset
-toggleButton.Text = "Teleport to PizzaShop: Off" -- Initial button text
+toggleButton.Size = UDim2.new(0, 250, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Text = "Teleport to PizzaShop: Off"
 toggleButton.TextScaled = true
-toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255) -- Button color
+toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
 toggleButton.Parent = screenGui
 
--- Set up properties for the Close Button
 closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 100, 0, 50) -- Width = 100, Height = 50
-closeButton.Position = UDim2.new(0, 10, 0, 70) -- Below the teleport button
+closeButton.Size = UDim2.new(0, 100, 0, 50)
+closeButton.Position = UDim2.new(0, 10, 0, 70)
 closeButton.Text = "Close"
 closeButton.TextScaled = true
-closeButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Important to distinguish
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
 closeButton.Parent = screenGui
 
--- Set up properties for the Teleport to Salon Button
 teleportToSalonButton.Name = "TeleportToSalonButton"
-teleportToSalonButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-teleportToSalonButton.Position = UDim2.new(0, 10, 0, 130) -- Below the Close button
+teleportToSalonButton.Size = UDim2.new(0, 250, 0, 50)
+teleportToSalonButton.Position = UDim2.new(0, 10, 0, 130)
 teleportToSalonButton.Text = "Teleport to Salon"
 teleportToSalonButton.TextScaled = true
-teleportToSalonButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToSalonButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 teleportToSalonButton.Parent = screenGui
 
--- Set up properties for the Teleport to School Button
 teleportToSchoolButton.Name = "TeleportToSchoolButton"
-teleportToSchoolButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-teleportToSchoolButton.Position = UDim2.new(0, 10, 0, 190) -- Below the Salon button
+teleportToSchoolButton.Size = UDim2.new(0, 250, 0, 50)
+teleportToSchoolButton.Position = UDim2.new(0, 10, 0, 190)
 teleportToSchoolButton.Text = "Teleport to School"
 teleportToSchoolButton.TextScaled = true
-teleportToSchoolButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToSchoolButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 teleportToSchoolButton.Parent = screenGui
 
--- Set up properties for the Teleport to Campsite Button
 teleportToCampsiteButton.Name = "TeleportToCampsiteButton"
-teleportToCampsiteButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-teleportToCampsiteButton.Position = UDim2.new(0, 10, 0, 250) -- Below the School button
+teleportToCampsiteButton.Size = UDim2.new(0, 250, 0, 50)
+teleportToCampsiteButton.Position = UDim2.new(0, 10, 0, 250)
 teleportToCampsiteButton.Text = "Teleport to Campsite Origin"
 teleportToCampsiteButton.TextScaled = true
-teleportToCampsiteButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToCampsiteButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 teleportToCampsiteButton.Parent = screenGui
 
--- Set up properties for the Teleport to Beach Party Button
 teleportToBeachPartyButton.Name = "TeleportToBeachPartyButton"
-teleportToBeachPartyButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-teleportToBeachPartyButton.Position = UDim2.new(0, 10, 0, 310) -- Below the Campsite button
+teleportToBeachPartyButton.Size = UDim2.new(0, 250, 0, 50)
+teleportToBeachPartyButton.Position = UDim2.new(0, 10, 0, 310)
 teleportToBeachPartyButton.Text = "Teleport to Beach Party"
 teleportToBeachPartyButton.TextScaled = true
-teleportToBeachPartyButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToBeachPartyButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 teleportToBeachPartyButton.Parent = screenGui
 
--- Set up properties for the Teleport to Playground Button
 teleportToPlaygroundButton.Name = "TeleportToPlaygroundButton"
-teleportToPlaygroundButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-teleportToPlaygroundButton.Position = UDim2.new(0, 10, 0, 370) -- Below the Beach Party button
+teleportToPlaygroundButton.Size = UDim2.new(0, 250, 0, 50)
+teleportToPlaygroundButton.Position = UDim2.new(0, 10, 0, 370)
 teleportToPlaygroundButton.Text = "Teleport to Playground"
 teleportToPlaygroundButton.TextScaled = true
-teleportToPlaygroundButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+teleportToPlaygroundButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 teleportToPlaygroundButton.Parent = screenGui
 
--- Set up properties for the Do Moon Task Button
 doMoonTaskButton.Name = "DoMoonTaskButton"
-doMoonTaskButton.Size = UDim2.new(0, 250, 0, 50) -- Width = 250, Height = 50
-doMoonTaskButton.Position = UDim2.new(0, 10, 0, 430) -- Below the Playground button
+doMoonTaskButton.Size = UDim2.new(0, 250, 0, 50)
+doMoonTaskButton.Position = UDim2.new(0, 10, 0, 430)
 doMoonTaskButton.Text = "Do Moon Task"
 doMoonTaskButton.TextScaled = true
-doMoonTaskButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Green color for positive action
+doMoonTaskButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 doMoonTaskButton.Parent = screenGui
 
--- Function to toggle script active status and execute script logic
+uselessButton.Name = "DoRideTaskButton"
+uselessButton.Size = UDim2.new(0, 250, 0, 50)
+uselessButton.Position = UDim2.new(0, 10, 0, 490)
+uselessButton.Text = "Do Ride Task"
+uselessButton.TextScaled = true
+uselessButton.BackgroundColor3 = Color3.fromRGB(128, 0, 128) -- Purple color
+uselessButton.Parent = screenGui
+
+-- Logic For the UI (unchanged)
 local function toggleScript()
     scriptActive = not scriptActive
     if scriptActive then
         toggleButton.Text = "Teleport to PizzaShop: On"
         print("Script is now active.")
-
-        -- Call the necessary functions when the script is activated
-        unsubscribeFromHouse() -- Unsubscribe from the house
-        wait(5) -- Wait for 5 seconds after unsubscribing
-
-        -- Start the coroutine for continuous destination id update
+        unsubscribeFromHouse()
+        wait(5)
         coroutine.wrap(changeDestinationIdForPizzaShop)()
-
-        -- Attempt to teleport to the neighborhood
-        wait(3) -- Ensure there is sufficient time for the unsubscribe to complete
-        teleportToTouchToEnter() -- Attempt to teleport to the TouchToEnter part.
-
-        -- Start checking for InteriorOrigin continuously
-        coroutine.wrap(checkInteriorOriginContinuously)() 
-
-        -- Start the countdown for Pizza Shop Task
-        coroutine.wrap(startCountdown)("Doing Pizza Shop Task", 100) -- Starts a 100-second countdown
+        wait(3)
+        teleportToTouchToEnter()
+        coroutine.wrap(checkInteriorOriginContinuously)()
+        coroutine.wrap(startCountdown)("Doing Pizza Shop Task", 100)
     else
         toggleButton.Text = "Teleport to PizzaShop: Off"
         print("Script is now inactive.")
     end
 end
 
--- Function to close the GUI
+-- Close button (unchanged)
 local function closeGui()
-    scriptActive = false -- Stop any active operations
+    scriptActive = false
     screenGui:Destroy()
     print("GUI closed.")
 end
 
--- Function to handle teleport to Salon button
+-- Helper functions for the Teleport to Salon button (unchanged)
 local function teleportToSalon()
-    print("Teleport to Salon button clicked.") -- Debugging statement
-
-    -- Change the destination_id to "Salon"
+    print("Teleport to Salon button clicked.")
     local configuration = workspace.Interiors.PizzaShop.Doors.MainDoor.WorkingParts.Configuration
     if configuration and configuration:FindFirstChild("destination_id") then
         configuration.destination_id.Value = "Salon"
@@ -573,65 +690,43 @@ local function teleportToSalon()
         warn("destination_id not found in the configuration.")
         return
     end
-
-    -- Teleport to the TouchToEnter part first
     local touchToEnterPart = workspace.Interiors.PizzaShop.Doors.MainDoor.WorkingParts.TouchToEnter
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-    
     if character and character.PrimaryPart then
-        character:SetPrimaryPartCFrame(touchToEnterPart.CFrame) -- Teleport to TouchToEnter
+        character:SetPrimaryPartCFrame(touchToEnterPart.CFrame)
         print("Teleported to TouchToEnter.")
     else
         warn("No PrimaryPart found in character.")
         return
     end
-
-    -- Start the countdown for Salon task
-    coroutine.wrap(startCountdown)("Doing Salon Task", 100) -- Starts a 100-second countdown
-
-    -- Set searchingForSalon to true and start looking for Salon's InteriorOrigin
+    coroutine.wrap(startCountdown)("Doing Salon Task", 100)
     searchingForSalon = true
     coroutine.wrap(continuouslyFindSalonInteriorOrigin)()
-    
-    -- Resize the Touch to Enter part
-    local targetPart = touchToEnterPart -- Reference to the target part
+    local targetPart = touchToEnterPart
     local function resizeTouchToEnter(part)
         if part then
-            part.Size = Vector3.new(10, 8, 10) -- Increased size
+            part.Size = Vector3.new(10, 8, 10)
             print("Touch to Enter part size increased to: " .. tostring(part.Size))
         else
             print("Touch to Enter part not found.")
         end
     end
-    
-    -- Function to teleport to the target part and then walk towards it
     local function teleportAndWalk(part)
         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
         if humanoidRootPart then
-            -- Teleport the character to the target part's position
             humanoidRootPart.CFrame = part.CFrame
-            
-            -- Pause a moment to allow for teleportation
             wait(0.5)
-
-            -- Calculate a point slightly in front of the target position to "walk" towards
-            local walkDestination = part.Position + Vector3.new(0, 0, 5)  -- Adjust the walking distance as needed
-            
-            -- Start walking towards the new destination
+            local walkDestination = part.Position + Vector3.new(0, 0, 5)
             character.Humanoid:MoveTo(walkDestination)
         end
     end
-
-    -- Resize and walk towards the TouchToEnter part
     resizeTouchToEnter(targetPart)
     teleportAndWalk(targetPart)
 end
 
--- Function to handle teleport to School button
+-- Helper functions for the Teleport to School button (unchanged)
 local function teleportToSchool()
-    print("Teleport to School button clicked.") -- Debugging statement
-
-    -- Change the destination_id to "School"
+    print("Teleport to School button clicked.")
     local configuration = workspace.Interiors.Salon.Doors.MainDoor.WorkingParts.Configuration
     if configuration and configuration:FindFirstChild("destination_id") then
         configuration.destination_id.Value = "School"
@@ -640,89 +735,191 @@ local function teleportToSchool()
         warn("destination_id not found in the configuration.")
         return
     end
-
-    -- Teleport to the TouchToEnter part first
     local touchToEnterPart = workspace.Interiors.Salon.Doors.MainDoor.WorkingParts.TouchToEnter
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-    
     if character and character.PrimaryPart then
-        -- Move the TouchToEnter part backward
-        local newPosition = touchToEnterPart.Position - (touchToEnterPart.CFrame.LookVector * 2) -- Move backward by 2 studs
-        touchToEnterPart.Position = newPosition -- Update the position of TouchToEnter part
-
-        -- Make the character jump twice
+        local newPosition = touchToEnterPart.Position - (touchToEnterPart.CFrame.LookVector * 2)
+        touchToEnterPart.Position = newPosition
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            wait(0.2) -- Wait for a short duration between jumps
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-            wait(0.2) -- Wait for a short duration between jumps
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            wait(0.2) -- Wait for a short duration between jumps
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
-            wait(0.2) -- Wait for a short duration between jumps
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- Jump again
+            for _ = 1, 5 do
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                wait(0.2)
+            end
         else
             warn("Humanoid not found in character.")
             return
         end
-
-        -- Teleport to TouchToEnter
-        character:SetPrimaryPartCFrame(touchToEnterPart.CFrame) -- Teleport to TouchToEnter
+        character:SetPrimaryPartCFrame(touchToEnterPart.CFrame)
         print("Teleported to TouchToEnter.")
     else
         warn("No PrimaryPart found in character.")
         return
     end
-
-    -- Start the countdown for School task
-    coroutine.wrap(startCountdown)("Doing School Task", 100) -- Starts a 100-second countdown
-
-    -- Set searchingForSchool to true and start looking for School's InteriorOrigin
+    coroutine.wrap(startCountdown)("Doing School Task", 100)
     searchingForSchool = true
     coroutine.wrap(continuouslyFindSchoolInteriorOrigin)()
-
-    -- Resize the TouchToEnter part
-    local targetPart = touchToEnterPart -- Reference to the target part
+    local targetPart = touchToEnterPart
     local function resizeTouchToEnter(part)
         if part then
-            part.Size = Vector3.new(10, 8, 10) -- Increased size
+            part.Size = Vector3.new(10, 8, 10)
             print("Touch to Enter part size increased to: " .. tostring(part.Size))
         else
             print("Touch to Enter part not found.")
         end
     end
-    
-    -- Function to teleport to the target part and then walk towards it
     local function teleportAndWalk(part)
         local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
         if humanoidRootPart then
-            -- Teleport the character to the target part's position
             humanoidRootPart.CFrame = part.CFrame
-            
-            -- Pause a moment to allow for teleportation
             wait(0.5)
-
-            -- Calculate a point slightly in front of the target position to "walk" towards
-            local walkDestination = part.Position + Vector3.new(0, 0, 5)  -- Adjust the walking distance as needed
-            
-            -- Start walking towards the new destination
+            local walkDestination = part.Position + Vector3.new(0, 0, 5)
             character.Humanoid:MoveTo(walkDestination)
         end
     end
-
-    -- Resize and walk towards the TouchToEnter part
     resizeTouchToEnter(targetPart)
     teleportAndWalk(targetPart)
 end
 
--- Connect the button click events to the respective functions
+local function doNothing()
+    print("Useless button clicked. Doing absolutely nothing.")
+end
+
 toggleButton.MouseButton1Click:Connect(toggleScript)
 closeButton.MouseButton1Click:Connect(closeGui)
 teleportToSalonButton.MouseButton1Click:Connect(teleportToSalon)
 teleportToSchoolButton.MouseButton1Click:Connect(teleportToSchool)
 teleportToCampsiteButton.MouseButton1Click:Connect(teleportToCampsiteOrigin)
-teleportToBeachPartyButton.MouseButton1Click:Connect(teleportToBeachParty) -- Connect Beach Party button
-teleportToPlaygroundButton.MouseButton1Click:Connect(teleportToPlayground) -- Connect Playground button
-doMoonTaskButton.MouseButton1Click:Connect(doMoonTask) -- Connect Moon Task button
+teleportToBeachPartyButton.MouseButton1Click:Connect(teleportToBeachParty)
+teleportToPlaygroundButton.MouseButton1Click:Connect(teleportToPlayground)
+doMoonTaskButton.MouseButton1Click:Connect(doMoonTask)
+uselessButton.MouseButton1Click:Connect(uselessButtonAction)
+
+
+
+walk task.
+
+
+
+
+i want another button called Do Walk Task like the others. 
+
+which will do the following:
+
+1 teleport to a green platform / large like a basplate in the middle of nowhere 
+
+2, make it do this code.
+
+
+local jumpTime = 30           -- Time to keep jumping and clicking (seconds)
+local clickDelay = 10         -- Delay between each set of clicks (in seconds)
+local jumpHeight = 100        -- Height of the jump
+local clicksPerSet = 2        -- Number of clicks in each set
+
+-- Function to click the hotbar tool in slot 1
+local function clickHotbarTool()
+    local player = game:GetService("Players").LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    -- Navigate to the ToolContainer
+    local toolContainer = playerGui:FindFirstChild("ToolApp")
+                        and playerGui.ToolApp:FindFirstChild("Frame")
+                        and playerGui.ToolApp.Frame:FindFirstChild("Hotbar")
+                        and playerGui.ToolApp.Frame.Hotbar:FindFirstChild("ToolContainer")
+
+    if not toolContainer then
+        print("ToolContainer not found!")
+        return
+    end
+
+    local slotNumLabel = toolContainer:FindFirstChild("SlotNum")
+
+    -- Check if SlotNum is "1"
+    if slotNumLabel and slotNumLabel:IsA("TextLabel") and slotNumLabel.Text == "1" then
+        print("SlotNum is '1', clicking the Tool...")
+
+        local tool = toolContainer:FindFirstChild("Tool")
+        if tool and (tool:IsA("ImageButton") or tool:IsA("TextButton")) then
+            print("Found Tool, clicking...")
+
+            -- Fire MouseButton events safely
+            pcall(function()
+                for _, connection in pairs(getconnections(tool.MouseButton1Down)) do
+                    connection:Fire()
+                end
+                for _, connection in pairs(getconnections(tool.MouseButton1Click)) do
+                    connection:Fire()
+                end
+                for _, connection in pairs(getconnections(tool.MouseButton1Up)) do
+                    connection:Fire()
+                end
+            end)
+        else
+            print("Tool not found!")
+        end
+    else
+        print("SlotNum is not '1', skipping...")
+    end
+end
+
+-- Function to make the player jump at a controlled height
+local function controlledJump(character)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local humanoidsRoot = character:FindFirstChild("HumanoidRootPart")
+
+    if humanoid and humanoidsRoot then
+        humanoid.JumpPower = jumpHeight  -- Set jump height
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)  -- Trigger jump
+        wait(0.1)  -- Brief delay to allow the jump to register
+        humanoid.JumpPower = 50  -- Reset jump height to default for subsequent jumps
+    else
+        print("Humanoid or HumanoidRootPart not found.")
+    end
+end
+
+-- Function to check if the player is on the ground
+local function isOnGround(humanoid)
+    if humanoid then
+        return humanoid:GetState() == Enum.HumanoidStateType.Landed
+    end
+    return false
+end
+
+-- Function to continuously click the hotbar tool in sets of 'clicksPerSet'
+local function continuouslyClickInSets(clicksPerSet)
+    for i = 1, clicksPerSet do
+        clickHotbarTool()
+        wait(0.1)  -- Short delay between clicks within a set
+    end
+    wait(clickDelay)  -- Delay after completing the set of clicks
+end
+
+-- Main function to execute clicking and jumping
+local function main()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+
+    -- Start the main loop
+    while true do
+        -- Jump
+        controlledJump(character)
+
+        -- Wait for a short delay after jumping
+        wait(1)
+
+        -- Check if the player is on the ground and then click
+        if isOnGround(humanoid) then
+            continuouslyClickInSets(clicksPerSet)
+        end
+
+        -- Delay before the next jump
+        wait(1)
+    end
+end
+
+-- Execute the main function
+main()
+
+
+
